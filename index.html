@@ -57,7 +57,23 @@
       </button>
     </header>
 
+    <section class="filter-tools" aria-label="Filtros das checagens">
+      <label class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input type="search" id="search" placeholder="Buscar nas checagens" aria-label="Buscar nas checagens" autocomplete="off" enterkeyhint="search">
+      </label>
+      <fieldset class="filter-group">
+        <legend>Filtrar por candidato</legend>
+        <div class="filter-options" data-filter-group="candidate"></div>
+      </fieldset>
+      <fieldset class="filter-group">
+        <legend>Filtrar por veredito</legend>
+        <div class="filter-options" data-filter-group="verdict"></div>
+      </fieldset>
+    </section>
+
     <main class="loading"></main>
+    <p class="no-results" role="status" hidden>Nenhuma checagem corresponde aos filtros.</p>
 
     <footer class="foot">
       <details class="how">
@@ -97,6 +113,64 @@
       }
     };
 
+    const searchInput = document.querySelector('#search');
+    const noResults = document.querySelector('.no-results');
+    const filterTools = document.querySelector('.filter-tools');
+    let activeCandidate = '';
+    let activeVerdict = '';
+
+    function normalize(str) {
+      return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    function addFilterButtons(groupName, options) {
+      const group = document.querySelector(`[data-filter-group="${groupName}"]`);
+      for (const [value, label] of options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'filter-button';
+        button.dataset.filter = groupName;
+        button.dataset.value = value;
+        button.setAttribute('aria-pressed', value === '' ? 'true' : 'false');
+        button.textContent = label;
+        group.appendChild(button);
+      }
+    }
+
+    addFilterButtons('candidate', [['', 'Todos'], ...Object.entries(labels.n)]);
+    addFilterButtons('verdict', [['', 'Todos'], ...Object.entries(labels.c)]);
+
+    function applyFilters() {
+      const terms = normalize(searchInput.value).split(/\s+/).filter(Boolean);
+      const cards = document.querySelectorAll('.card');
+      let visible = 0;
+
+      cards.forEach(card => {
+        const matchesCandidate = !activeCandidate || card.dataset.n === activeCandidate;
+        const matchesVerdict = !activeVerdict || card.dataset.c === activeVerdict;
+        const matchesSearch = terms.every(term => card.dataset.search.includes(term));
+        card.hidden = !(matchesCandidate && matchesVerdict && matchesSearch);
+        if (!card.hidden) visible++;
+      });
+
+      noResults.hidden = !cards.length || visible > 0;
+    }
+
+    filterTools.addEventListener('click', event => {
+      const button = event.target.closest('button[data-filter]');
+      if (!button) return;
+
+      const group = button.parentElement;
+      group.querySelectorAll('button[data-filter]').forEach(option => {
+        option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
+      });
+
+      if (button.dataset.filter === 'candidate') activeCandidate = button.dataset.value;
+      else activeVerdict = button.dataset.value;
+      applyFilters();
+    });
+    searchInput.addEventListener('input', applyFilters);
+
     // Keep state in memory
     let currentPosts = [];
 
@@ -109,8 +183,9 @@
     }
 
     function createCardHTML(item, index) {
+      const searchText = normalize([labels.n[item.n], labels.c[item.c], item.t, item.v].join(' '));
       return `
-        <article class="card" id="f${index}">
+        <article class="card" id="f${index}" data-n="${item.n}" data-c="${item.c}" data-search="${escapeHTML(searchText)}">
           <header>
             <img src="/${labels.i[item.n]}" alt="" width="56" height="56" decoding="async" loading="lazy">
             <h2>${labels.n[item.n]}</h2>
@@ -142,6 +217,7 @@
       if (!items.length) {
         document.querySelector(containerSelector).innerHTML = '';
         currentPosts = [];
+        applyFilters();
         return;
       }
 
@@ -181,6 +257,7 @@
 
       // Update in-memory reference
       currentPosts = items;
+      applyFilters();
 
       const shared = location.hash && document.getElementById(location.hash.slice(1));
       if (shared) {
