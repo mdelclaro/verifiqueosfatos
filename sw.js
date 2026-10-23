@@ -1,7 +1,8 @@
-const CACHE_NAME = 'pwa-static-v12'; // Incremented cache version
+const CACHE_NAME = 'pwa-static-v13'; // Incremented cache version
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './filters.js',
   './normalize.css',
   './style.css',
   './manifest.json',

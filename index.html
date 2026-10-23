@@ -58,10 +58,6 @@
     </header>
 
     <section class="filter-tools" aria-label="Filtros das checagens">
-      <label class="search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input type="search" id="search" placeholder="Buscar nas checagens" aria-label="Buscar nas checagens" autocomplete="off" enterkeyhint="search">
-      </label>
       <fieldset class="filter-group">
         <legend>Filtrar por candidato</legend>
         <div class="filter-options" data-filter-group="candidate"></div>
@@ -72,7 +68,7 @@
       </fieldset>
     </section>
 
-    <main class="loading"></main>
+    <main id="posts" class="loading"></main>
     <p class="no-results" role="status" hidden>Nenhuma checagem corresponde aos filtros.</p>
 
     <footer class="foot">
@@ -93,6 +89,7 @@
     </footer>
   </div>
 
+  <script src="./filters.js"></script>
   <script>
     const labels = {
       // name
@@ -113,67 +110,33 @@
       }
     };
 
-    const searchInput = document.querySelector('#search');
     const noResults = document.querySelector('.no-results');
-    const filterTools = document.querySelector('.filter-tools');
     let activeCandidate = '';
     let activeVerdict = '';
 
-    function normalize(str) {
-      return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    }
-
-    function addFilterButtons(groupName, options) {
-      const group = document.querySelector(`[data-filter-group="${groupName}"]`);
-      for (const [value, label] of options) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'filter-button';
-        button.dataset.filter = groupName;
-        button.dataset.value = value;
-        button.setAttribute('aria-pressed', value === '' ? 'true' : 'false');
-        button.textContent = label;
-        group.appendChild(button);
-      }
-    }
-
-    addFilterButtons('candidate', [
-      ['', 'Todos'],
-      ...Object.entries(labels.n).sort(([, a], [, b]) => a.localeCompare(b, 'pt-BR'))
-    ]);
-    addFilterButtons('verdict', [['', 'Todos'], ...Object.entries(labels.c)]);
-
     function applyFilters() {
-      const terms = normalize(searchInput.value).split(/\s+/).filter(Boolean);
       const cards = document.querySelectorAll('.card');
       let visible = 0;
 
       cards.forEach(card => {
         const matchesCandidate = !activeCandidate || card.dataset.n === activeCandidate;
         const matchesVerdict = !activeVerdict || card.dataset.c === activeVerdict;
-        const matchesSearch = terms.every(term => card.dataset.search.includes(term));
-        card.hidden = !(matchesCandidate && matchesVerdict && matchesSearch);
+        card.hidden = !(matchesCandidate && matchesVerdict);
         if (!card.hidden) visible++;
       });
 
       noResults.hidden = !cards.length || visible > 0;
     }
 
-    filterTools.addEventListener('click', event => {
-      const button = event.target.closest('button[data-filter]');
-      if (!button) return;
-
-      const group = button.parentElement;
-      group.querySelectorAll('button[data-filter]').forEach(option => {
-        option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
-      });
-
-      if (button.dataset.filter === 'candidate') activeCandidate = button.dataset.value;
-      else activeVerdict = button.dataset.value;
-      applyFilters();
+    createFilterControls({
+      candidateLabels: labels.n,
+      verdictLabels: labels.c,
+      onChange: ({ candidate, verdict }) => {
+        activeCandidate = candidate;
+        activeVerdict = verdict;
+        applyFilters();
+      }
     });
-    searchInput.addEventListener('input', applyFilters);
-
     // Keep state in memory
     let currentPosts = [];
 
@@ -186,9 +149,8 @@
     }
 
     function createCardHTML(item, index) {
-      const searchText = normalize([labels.n[item.n], labels.c[item.c], item.t, item.v].join(' '));
       return `
-        <article class="card" id="f${index}" data-n="${item.n}" data-c="${item.c}" data-search="${escapeHTML(searchText)}">
+        <article class="card" id="f${index}" data-n="${item.n}" data-c="${item.c}">
           <header>
             <img src="/${labels.i[item.n]}" alt="" width="56" height="56" decoding="async" loading="lazy">
             <h2>${labels.n[item.n]}</h2>
