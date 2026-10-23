@@ -66,9 +66,6 @@ body {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: var(--inv-bg);
-  color: var(--inv-fg);
 }
 
 h1 {
@@ -512,4 +509,51 @@ main.loading:empty::after {
   .long {
     display: none;
   }
+}
+
+
+/* Skip layout/paint for off-screen cards on long lists */
+.card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
+/* Cards that arrive in an update slide in; the initial load is not animated */
+.card.new {
+  animation: in .4s ease-out;
+}
+
+@keyframes in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.new {
+    animation: none;
+  }
+}
+
+/* "↑ N novas verificações": shown when new cards arrive while reading mid-list */
+#more {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--inv-bg);
+  color: var(--inv-fg);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgb(0 0 0 / .25);
+  cursor: pointer;
+}
+
+#more[hidden] {
+  display: none;
 }

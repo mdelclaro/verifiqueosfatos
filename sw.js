@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pwa-static-v14'; // Incremented cache version
+const CACHE_NAME = 'pwa-static-v15'; // Bump on every asset change so clients update
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -43,22 +43,15 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch Event: Exclude /posts.json from cache
+// 3. Fetch Event: Cache-First for the app shell, everything else goes straight to the network
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Check if the request path ends with /posts.json or matches posts.json
-  if (url.pathname.endsWith('/posts.json')) {
-    // Network-Only strategy: bypass cache completely
-    event.respondWith(fetch(event.request));
-    return;
-  }
+  // posts.json is never cached: not calling respondWith lets the browser handle it untouched
+  if (event.request.method !== 'GET' || url.pathname.endsWith('/posts.json')) return;
 
-  // Cache-First strategy for all other static assets
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
-      })
+    caches.match(event.request, { ignoreSearch: true })
+      .then((cachedResponse) => cachedResponse || fetch(event.request))
   );
 });

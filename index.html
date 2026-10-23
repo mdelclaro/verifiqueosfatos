@@ -23,17 +23,17 @@
   </script>
 
   <title>Verifique os Fatos</title>
-<meta name="description" content="Acompanhe a checagem em tempo real das falas e propostas dos candidatos a presidente no debate eleitoral da Globo.">
+<meta name="description" content="Acompanhe a checagem em tempo real das falas e propostas dos candidatos à presidente no debate eleitoral da Globo.">
 <link rel="canonical" href="https://verifiqueosfatos.com/">
 
 <!-- Open Graph (WhatsApp, Facebook, LinkedIn, Telegram, Discord) -->
 <meta property="og:locale" content="pt_BR">
 <meta property="og:url" content="https://verifiqueosfatos.com/">
 <meta property="og:title" content="Verifique os Fatos">
-<meta property="og:description" content="Acompanhe a checagem em tempo real das falas e propostas dos candidatos a presidente no debate eleitoral da Globo.">
-<meta property="og:image" content="https://verifiqueosfatos.com/verifiqueosfatos.png">
-<meta property="og:image:secure_url" content="https://verifiqueosfatos.com/verifiqueosfatos.png">
-<meta property="og:image:type" content="image/jpeg">
+<meta property="og:description" content="Acompanhe a checagem em tempo real das falas e propostas dos candidatos à presidente no debate eleitoral da Globo.">
+<meta property="og:image" content="https://verifiqueosfatos.com/verifique-os-fatos.png">
+<meta property="og:image:secure_url" content="https://verifiqueosfatos.com/verifique-os-fatos.png">
+<meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Verifique os Fatos">
@@ -42,11 +42,11 @@
   <div class="layout">
     <header class="top">
       <span class="logo" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <img src="/icon.png" alt="" width="40" height="40" />
       </span>
       <div>
         <h1>Verifique os Fatos</h1>
-        <p class="sub">Checagem em tempo real<span class="long"> das falas dos candidatos a presidente</span></p>
+        <p class="sub">Checagem em tempo real<span class="long"> das falas dos candidatos à presidente</span></p>
       </div>
       <a class="github" href="https://github.com/felippe-regazio/verifiqueosfatos" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2A10 10 0 0 0 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 22 12 10 10 0 0 0 12 2z"/></svg>
@@ -68,7 +68,7 @@
       </fieldset>
     </section>
 
-    <main id="posts" class="loading"></main>
+    <main id="posts" class="article-grid loading"></main>
     <p class="no-results" hidden>Nenhuma checagem corresponde aos filtros.</p>
     <p id="filter-status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
 
@@ -90,13 +90,15 @@
     </footer>
   </div>
 
+  <button id="more" type="button" hidden></button>
+
   <script src="./filters.js"></script>
   <script>
     const labels = {
       // name
       n: {
-        2: 'Flávio',
         1: 'Lula',
+        2: 'Flávio',
       },
       // checks
       c: {
@@ -111,13 +113,21 @@
       }
     };
 
+    const main = document.querySelector('main');
+    const more = document.getElementById('more');
     const noResults = document.querySelector('.no-results');
     const filterStatus = document.querySelector('#filter-status');
     let activeCandidate = '';
     let activeVerdict = '';
 
+    // Rendered cards keyed by their content, so unchanged posts are never re-created
+    let nodes = new Map();
+    let lastRaw = null;
+    let unseen = 0;
+    let currentPosts = [];
+
     function applyFilters(announce = false) {
-      const cards = document.querySelectorAll('.card');
+      const cards = main.querySelectorAll('.card');
       let visible = 0;
 
       cards.forEach(card => {
@@ -156,100 +166,6 @@
       filterNotice.textContent = 'Os filtros não carregaram. As checagens continuam disponíveis sem filtragem.';
       document.querySelector('.filter-tools')?.appendChild(filterNotice);
     }
-    // Keep state in memory
-    let currentPosts = [];
-
-    function getLS() {
-      try {
-        return JSON.parse(localStorage.getItem('data')) || [];
-      } catch {
-        return [];
-      }
-    }
-
-    function createCardHTML(item, index) {
-      return `
-        <article class="card" id="f${index}" data-n="${item.n}" data-c="${item.c}">
-          <header>
-            <img src="/${labels.i[item.n]}" alt="" width="56" height="56" decoding="async" loading="lazy">
-            <h2>${labels.n[item.n]}</h2>
-            <span class="badge" data-c="${item.c}">${labels.c[item.c]}</span>
-          </header>
-          <span class="label">Disse que:</span>
-          <blockquote class="said">
-            <p>${escapeHTML(item.t)}</p>
-          </blockquote>
-          <span class="label">Verificação:</span>
-          <p>${escapeHTML(item.v)}</p>
-          ${createSourcesHTML(item.s)}
-          <button class="share" type="button" data-index="${index}">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 0L7 8m5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
-            <span>Compartilhar</span>
-          </button>
-        </article>
-      `;
-    }
-
-    function canRender(item) {
-      return !!(item && labels.n[item.n] && labels.c[item.c] && item.t != null && item.t !== '');
-    }
-
-    function render(newData, containerSelector = 'main') {
-      const items = (Array.isArray(newData) ? newData : getLS()).filter(canRender);
-
-      // Nothing to show: leave <main> truly empty so main:empty shows the empty-state message
-      if (!items.length) {
-        document.querySelector(containerSelector).innerHTML = '';
-        currentPosts = [];
-        applyFilters();
-        return;
-      }
-
-      // 1. Skip completely if the content hasn't changed at all
-      if (JSON.stringify(items) === JSON.stringify(currentPosts)) {
-        return;
-      }
-
-      const mainTarget = document.querySelector(containerSelector);
-      if (!mainTarget) return;
-
-      // Ensure the .article-grid wrapper exists
-      let grid = mainTarget.querySelector('.article-grid');
-      if (!grid) {
-        grid = document.createElement('div');
-        grid.className = 'article-grid';
-        mainTarget.appendChild(grid);
-      }
-
-      // 2. If memory is empty (initial page load), render everything
-      if (currentPosts.length === 0) {
-        grid.innerHTML = items.map(createCardHTML).join('');
-      } else {
-        const y = window.scrollY;
-        const cards = grid.children;
-        for (let i = 0; i < items.length; i++) {
-          const prev = currentPosts[i];
-          const item = items[i];
-          if (cards[i] && prev && JSON.stringify(prev) === JSON.stringify(item)) continue;
-          const html = createCardHTML(item, i).trim();
-          if (cards[i]) cards[i].outerHTML = html;
-          else grid.insertAdjacentHTML('beforeend', html);
-        }
-        while (cards.length > items.length) cards[cards.length - 1].remove();
-        if (window.scrollY !== y) window.scrollTo(0, y);
-      }
-
-      // Update in-memory reference
-      currentPosts = items;
-      applyFilters();
-
-      const shared = location.hash && document.getElementById(location.hash.slice(1));
-      if (shared) {
-        shared.classList.add('shared');
-        history.replaceState(null, '', location.pathname);
-        setTimeout(() => shared.scrollIntoView({ block: 'center' }), 400);
-      }
-    }
 
     function createSourcesHTML(sources) {
       const links = (Array.isArray(sources) ? sources : [])
@@ -265,41 +181,138 @@
       );
     }
 
-    function generateAlphanumeric(length = 6) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
+    function createCard(item) {
+      const el = document.createElement('article');
+      el.className = 'card';
+      el.dataset.n = item.n;
+      el.dataset.c = item.c;
+      el.innerHTML = `
+        <header>
+          <img src="/${labels.i[item.n]}" alt="" width="56" height="56" decoding="async" loading="lazy">
+          <h2>${labels.n[item.n]}</h2>
+          <span class="badge" data-c="${item.c}">${labels.c[item.c] || '?'}</span>
+        </header>
+        <span class="label">Disse que:</span>
+        <blockquote class="said">
+          <p>${escapeHTML(item.t)}</p>
+        </blockquote>
+        <span class="label">Verificação:</span>
+        <p>${escapeHTML(item.v)}</p>
+        ${createSourcesHTML(item.s)}
+        <button class="share" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3m0 0L7 8m5-5 5 5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+          <span>Compartilhar</span>
+        </button>`;
+      el.addEventListener('animationend', () => el.classList.remove('new'), { once: true });
+      return el;
     }
-    
+
+    function canRender(item) {
+      return !!(item && labels.n[item.n] && labels.c[item.c] && item.t != null && item.t !== '');
+    }
+
+    // Renders posts newest-first. Returns false if raw is not a valid posts array.
+    function render(raw) {
+      if (raw === lastRaw) return true;
+
+      let items;
+      try { items = JSON.parse(raw); } catch { return false; }
+      if (!Array.isArray(items)) return false;
+
+      // Nothing on screen yet (first visit boots with an empty list): don't animate everything
+      const first = nodes.size === 0;
+      const next = new Map();
+      const list = [];
+      let added = 0;
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        if (!canRender(item)) continue;
+
+        const base = JSON.stringify(item);
+        let key = base;
+        for (let d = 1; next.has(key); d++) key = base + '#' + d;
+
+        let el = nodes.get(key);
+        if (!el) {
+          el = createCard(item);
+          if (!first) {
+            el.classList.add('new');
+            added++;
+          }
+        }
+        // The index in posts.json is the share link's id, and it shifts when a post is removed
+        el.id = `f${i}`;
+        el.querySelector('.share').dataset.index = i;
+        next.set(key, el);
+        list.push(el);
+      }
+
+      // Move/insert only what changed; leftover nodes at the end were removed from posts.json
+      let ref = main.firstChild;
+      for (const el of list) {
+        if (el === ref) ref = ref.nextSibling;
+        else main.insertBefore(el, ref);
+      }
+      while (ref) {
+        const n = ref.nextSibling;
+        ref.remove();
+        ref = n;
+      }
+
+      nodes = next;
+      lastRaw = raw;
+      currentPosts = items;
+      applyFilters();
+
+      const shared = location.hash && document.getElementById(location.hash.slice(1));
+      if (shared) {
+        shared.classList.add('shared');
+        history.replaceState(null, '', location.pathname);
+        setTimeout(() => shared.scrollIntoView({ block: 'center' }), 400);
+      }
+
+      if (added && window.scrollY > main.offsetTop) {
+        unseen += added;
+        more.textContent = `↑ ${unseen} ${unseen > 1 ? 'novas verificações' : 'nova verificação'}`;
+        more.hidden = false;
+      }
+      return true;
+    }
+
     const DELAY = 15000;
-    const NOW = new Date();
-    const INTERVAL = DELAY + NOW.getSeconds();    
     const URI_POSTS_JSON = '/posts.json';
 
+    let timer, busy;
+
+    // Polls only while the tab is visible: hidden tabs cost zero requests
     function update() {
-      return fetch(`${URI_POSTS_JSON}?v=${generateAlphanumeric()}`)
-        .then(r => r.json())
-        .then(data => {
+      clearTimeout(timer);
+      if (busy || document.hidden) return Promise.resolve();
+      busy = true;
+
+      // A hung request would keep busy set and block every later update
+      const signal = AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined;
+
+      return fetch(`${URI_POSTS_JSON}?v=${Date.now()}`, { signal })
+        .then(r => {
+          if (!r.ok) throw r.status;
+          return r.text();
+        })
+        .then(raw => {
           // First answer from the server: from now on an empty list really means "nothing yet"
-          document.querySelector('main').classList.remove('loading');
+          main.classList.remove('loading');
 
-          if (!Array.isArray(data)) return;
-
-          if (!data.length) {
-            window.localStorage.removeItem('data');
-            render([]);
-          }
-
-          if (data && data.length) {
-            // Save to localStorage and update DOM incrementally
-            localStorage.setItem('data', JSON.stringify(data));
-            render(data);
+          if (raw !== lastRaw && render(raw)) {
+            try { localStorage.setItem('data', raw); } catch {}
           }
         })
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => {
+          busy = false;
+          // Jitter spreads clients so they don't hit the host in sync
+          if (!document.hidden) timer = setTimeout(update, DELAY + Math.random() * 5000);
+        });
     }
 
     const themeButton = document.querySelector('.theme');
@@ -335,13 +348,24 @@
       } catch {}
     });
 
+    more.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    window.addEventListener('scroll', () => {
+      if (unseen && window.scrollY <= main.offsetTop) {
+        unseen = 0;
+        more.hidden = true;
+      }
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', update);
+    window.addEventListener('online', update);
+
     // Initial render from localStorage, then perform first fetch
-    render();
+    let saved = null;
+    try { saved = localStorage.getItem('data'); } catch {}
+    render(saved || '[]');
     // Live region is enabled only after the first cards settle (screen readers
     // announce DOM changes asynchronously), so just checks that arrive later are read
     update().then(() => setTimeout(() => document.querySelector('main').setAttribute('aria-live', 'polite'), 1000));
-    setInterval(update, INTERVAL);
-
     // Keeps the screen on while the page is visible, so the phone doesn't sleep
     // during the debate. The browser releases the lock when the tab is hidden,
     // so it's requested again on return. Fails silently where unsupported.
