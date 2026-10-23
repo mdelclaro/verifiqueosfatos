@@ -69,7 +69,8 @@
     </section>
 
     <main id="posts" class="loading"></main>
-    <p class="no-results" role="status" hidden>Nenhuma checagem corresponde aos filtros.</p>
+    <p class="no-results" hidden>Nenhuma checagem corresponde aos filtros.</p>
+    <p id="filter-status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
 
     <footer class="foot">
       <details class="how">
@@ -111,10 +112,11 @@
     };
 
     const noResults = document.querySelector('.no-results');
+    const filterStatus = document.querySelector('#filter-status');
     let activeCandidate = '';
     let activeVerdict = '';
 
-    function applyFilters() {
+    function applyFilters(announce = false) {
       const cards = document.querySelectorAll('.card');
       let visible = 0;
 
@@ -126,17 +128,34 @@
       });
 
       noResults.hidden = !cards.length || visible > 0;
+      if (announce) {
+        if (!cards.length) {
+          filterStatus.textContent = 'Nenhuma checagem está disponível para filtrar.';
+        } else if (!visible) {
+          filterStatus.textContent = 'Nenhuma checagem corresponde aos filtros.';
+        } else {
+          filterStatus.textContent = `${visible} ${visible === 1 ? 'checagem encontrada' : 'checagens encontradas'}.`;
+        }
+      }
     }
 
-    createFilterControls({
-      candidateLabels: labels.n,
-      verdictLabels: labels.c,
-      onChange: ({ candidate, verdict }) => {
-        activeCandidate = candidate;
-        activeVerdict = verdict;
-        applyFilters();
-      }
-    });
+    if (typeof window.createFilterControls === 'function') {
+      window.createFilterControls({
+        candidateLabels: labels.n,
+        verdictLabels: labels.c,
+        onChange: ({ candidate, verdict }) => {
+          activeCandidate = candidate;
+          activeVerdict = verdict;
+          applyFilters(true);
+        }
+      });
+    } else {
+      const filterNotice = document.createElement('p');
+      filterNotice.className = 'filter-error';
+      filterNotice.setAttribute('role', 'status');
+      filterNotice.textContent = 'Os filtros não carregaram. As checagens continuam disponíveis sem filtragem.';
+      document.querySelector('.filter-tools')?.appendChild(filterNotice);
+    }
     // Keep state in memory
     let currentPosts = [];
 
