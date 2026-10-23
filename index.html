@@ -97,8 +97,8 @@
     const labels = {
       // name
       n: {
-        1: 'Lula',
         2: 'Flávio',
+        1: 'Lula',
       },
       // checks
       c: {
@@ -137,7 +137,10 @@
       }
     }
 
-    addFilterButtons('candidate', [['', 'Todos'], ...Object.entries(labels.n)]);
+    addFilterButtons('candidate', [
+      ['', 'Todos'],
+      ...Object.entries(labels.n).sort(([, a], [, b]) => a.localeCompare(b, 'pt-BR'))
+    ]);
     addFilterButtons('verdict', [['', 'Todos'], ...Object.entries(labels.c)]);
 
     function applyFilters() {
